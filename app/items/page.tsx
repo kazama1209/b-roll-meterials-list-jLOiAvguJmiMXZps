@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Item,
   Categories,
   listItems,
   getCategories,
-  updateItem,
-  createDelivery,
   assetUrl,
+  clipUrl,
   yen,
   TIER_LABEL,
 } from "../lib/api";
@@ -28,11 +28,8 @@ export default function ItemsPage() {
   const [q, setQ] = useState("");
   const [activeOnly, setActiveOnly] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [deliverFor, setDeliverFor] = useState<Item | null>(null);
 
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await listItems({
         tier: tier || undefined,
@@ -44,8 +41,6 @@ export default function ItemsPage() {
       setErr(null);
     } catch (e) {
       setErr(String(e));
-    } finally {
-      setLoading(false);
     }
   }, [tier, category, q, activeOnly]);
 
@@ -57,7 +52,6 @@ export default function ItemsPage() {
     reload();
   }, [reload]);
 
-  // tier を変えたらカテゴリ選択はリセット
   useEffect(() => {
     setCategory("");
   }, [tier]);
@@ -72,13 +66,13 @@ export default function ItemsPage() {
     [items]
   );
 
-  // 1行分だけ差し替える
-  const patchRow = (updated: Item) =>
-    setItems((rows) => rows.map((r) => (r.id === updated.id ? updated : r)));
-
   return (
     <div>
       <h1>カット一覧</h1>
+      <p className="lead">
+        各カードの<b>画像が撮ってほしい構図</b>。サムネを<b>クリックで再生</b>。
+        カードをクリックすると<b>詳細ページ</b>で単価編集・納入記録ができます。
+      </p>
 
       <div className="filters">
         <div className="tabs">
@@ -110,7 +104,10 @@ export default function ItemsPage() {
           style={{ width: 220 }}
         />
 
-        <label className="muted" style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        <label
+          className="muted"
+          style={{ display: "flex", gap: 4, alignItems: "center" }}
+        >
           <input
             type="checkbox"
             checked={activeOnly}
@@ -123,228 +120,91 @@ export default function ItemsPage() {
 
       {err && <div className="err">{err}</div>}
 
-      <table>
-        <thead>
-          <tr>
-            <th>サムネ</th>
-            <th>code</th>
-            <th>内容</th>
-            <th>カテゴリ</th>
-            <th className="num">単価</th>
-            <th className="num">欲しい数</th>
-            <th className="num">納入済</th>
-            <th className="num">残</th>
-            <th className="num">小計報酬</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it) => (
-            <Row
-              key={it.id}
-              item={it}
-              onPatch={patchRow}
-              onDeliver={() => setDeliverFor(it)}
-            />
-          ))}
-        </tbody>
-      </table>
-
-      <div className="totalbar">
-        フィルタ後の小計報酬合計： <b>{yen(filteredTotal)}</b>
+      <div className="grid">
+        {items.map((it) => (
+          <ItemCard key={it.id} item={it} />
+        ))}
       </div>
 
-      {loading && <p className="muted">更新中…</p>}
-
-      {deliverFor && (
-        <DeliveryModal
-          item={deliverFor}
-          onClose={() => setDeliverFor(null)}
-          onSaved={(updated) => {
-            patchRow(updated);
-            setDeliverFor(null);
-          }}
-        />
-      )}
+      <p className="muted" style={{ textAlign: "right", marginTop: 14 }}>
+        フィルタ後の小計報酬合計：{" "}
+        <b style={{ color: "var(--ac)", fontSize: 16 }}>{yen(filteredTotal)}</b>
+      </p>
     </div>
   );
 }
 
-function Row({
-  item,
-  onPatch,
-  onDeliver,
-}: {
-  item: Item;
-  onPatch: (it: Item) => void;
-  onDeliver: () => void;
-}) {
-  const [price, setPrice] = useState(String(item.unit_price));
-  const [wanted, setWanted] = useState(String(item.qty_wanted));
-
-  useEffect(() => setPrice(String(item.unit_price)), [item.unit_price]);
-  useEffect(() => setWanted(String(item.qty_wanted)), [item.qty_wanted]);
-
-  const save = async (patch: { unit_price?: number; qty_wanted?: number }) => {
-    try {
-      const updated = await updateItem(item.id, patch);
-      onPatch(updated);
-    } catch (e) {
-      alert("保存失敗: " + e);
-    }
-  };
-
-  const thumb = assetUrl(item.thumbnail);
+function ItemCard({ item }: { item: Item }) {
+  const router = useRouter();
+  const poster = assetUrl(item.thumbnail);
+  const clip = clipUrl(item.clip);
   const ref = item.reference_url;
 
-  return (
-    <tr>
-      <td>
-        {thumb ? (
-          <a href={ref || thumb} target="_blank" rel="noreferrer" title="お手本/クリップを開く">
-            {/* 外部Railsの画像。next/imageは使わず素のimgで配信一致 */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="thumb" src={thumb} alt={item.code} />
-          </a>
-        ) : (
-          <span className="muted">—</span>
-        )}
-      </td>
-      <td>
-        <strong>{item.code}</strong>
-        <br />
-        <span className="badge">{TIER_LABEL[item.tier] || item.tier}</span>
-      </td>
-      <td style={{ maxWidth: 280 }}>{item.title}</td>
-      <td className="muted">{item.category}</td>
-      <td className="num">
-        ¥
-        <input
-          className="inline"
-          type="number"
-          min={0}
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          onBlur={() => {
-            const v = parseInt(price || "0", 10);
-            if (v !== item.unit_price) save({ unit_price: v });
-          }}
-        />
-      </td>
-      <td className="num">
-        <input
-          className="inline"
-          type="number"
-          min={0}
-          style={{ width: 56 }}
-          value={wanted}
-          onChange={(e) => setWanted(e.target.value)}
-          onBlur={() => {
-            const v = parseInt(wanted || "0", 10);
-            if (v !== item.qty_wanted) save({ qty_wanted: v });
-          }}
-        />
-      </td>
-      <td className="num">{item.delivered}</td>
-      <td className="num">
-        {item.remaining === 0 ? (
-          <span className="done">{item.over_delivered ? "超過" : "完了"}</span>
-        ) : (
-          item.remaining
-        )}
-      </td>
-      <td className="num">
-        <strong>{yen(item.earned)}</strong>
-      </td>
-      <td>
-        <button className="btn" onClick={onDeliver}>
-          ＋納入
-        </button>{" "}
-        {ref && (
-          <a className="btn ghost" href={ref} target="_blank" rel="noreferrer">
-            お手本↗
-          </a>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-function todayStr(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-function DeliveryModal({
-  item,
-  onClose,
-  onSaved,
-}: {
-  item: Item;
-  onClose: () => void;
-  onSaved: (it: Item) => void;
-}) {
-  const [qty, setQty] = useState("1");
-  const [date, setDate] = useState(todayStr());
-  const [memo, setMemo] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const submit = async () => {
-    setBusy(true);
-    setErr(null);
-    try {
-      const { item: updated } = await createDelivery(item.id, {
-        qty: parseInt(qty || "0", 10),
-        delivered_on: date,
-        memo: memo || undefined,
-      });
-      onSaved(updated);
-    } catch (e) {
-      setErr(String(e));
-      setBusy(false);
-    }
-  };
+  const goDetail = () => router.push(`/items/${item.id}`);
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="modal-back" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>
-          納入を記録 — <span className="badge">{item.code}</span>
-        </h3>
-        <div className="muted" style={{ fontSize: 13 }}>
-          {item.title}
+    <div className="card" onClick={goDetail}>
+      <div className="thumb" onClick={stop}>
+        {clip ? (
+          <video
+            poster={poster || undefined}
+            preload="none"
+            muted
+            loop
+            playsInline
+            controls
+          >
+            <source src={clip} type="video/mp4" />
+          </video>
+        ) : poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt={item.code} />
+        ) : null}
+        <span className="id">{item.code}</span>
+        {clip && <span className="playhint">▶ クリックで再生</span>}
+      </div>
+
+      <div className="meta">
+        <div className="cap">{item.title}</div>
+        <div className="sub">
+          <span className={`badge tier-${item.tier}`}>
+            {TIER_LABEL[item.tier] || item.tier}
+          </span>
+          {ref && (
+            <a
+              className="acc"
+              href={ref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={stop}
+            >
+              お手本 ↗
+            </a>
+          )}
         </div>
-        {err && <div className="err">{err}</div>}
 
-        <label>本数（≥1）</label>
-        <input
-          type="number"
-          min={1}
-          value={qty}
-          onChange={(e) => setQty(e.target.value)}
-        />
-
-        <label>納入日</label>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-
-        <label>メモ（任意）</label>
-        <textarea
-          rows={2}
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="例: 3本中1本は撮り直し依頼"
-        />
-
-        <div className="modal-actions">
-          <button className="btn ghost" onClick={onClose} disabled={busy}>
-            キャンセル
-          </button>
-          <button className="btn" onClick={submit} disabled={busy}>
-            {busy ? "保存中…" : "記録する"}
-          </button>
+        <div className="cardstats">
+          <span>
+            単価 <b>{yen(item.unit_price)}</b>
+          </span>
+          <span>
+            欲しい <b>{item.qty_wanted}</b>
+          </span>
+          <span>
+            納入{" "}
+            <b>
+              {item.delivered}
+              {item.remaining === 0 && (
+                <span className="pill-done">
+                  {item.over_delivered ? " 超過" : " ✓"}
+                </span>
+              )}
+            </b>
+          </span>
+          <span className="earn">
+            小計 <b>{yen(item.earned)}</b>
+          </span>
         </div>
       </div>
     </div>

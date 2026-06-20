@@ -22,17 +22,17 @@ export default function Dashboard() {
       <h1>ダッシュボード</h1>
 
       <div className="cards">
-        <div className="card hero">
+        <div className="statcard hero">
           <div className="label">現在の報酬合計（納入済 × 単価）</div>
           <div className="value">{yen(s.total_earned)}</div>
         </div>
-        <div className="card">
+        <div className="statcard">
           <div className="label">納入済 / 欲しい数</div>
           <div className="value">
             {s.total_delivered} / {s.total_wanted}
           </div>
         </div>
-        <div className="card">
+        <div className="statcard">
           <div className="label">完了カット</div>
           <div className="value">
             {s.items_completed}{" "}
@@ -57,7 +57,9 @@ export default function Dashboard() {
           {s.by_tier.map((t) => (
             <tr key={t.tier}>
               <td>
-                <span className="badge">{TIER_LABEL[t.tier] || t.tier}</span>
+                <span className={`badge tier-${t.tier}`}>
+                  {TIER_LABEL[t.tier] || t.tier}
+                </span>
               </td>
               <td className="num">{yen(t.earned)}</td>
               <td className="num">{t.delivered}</td>

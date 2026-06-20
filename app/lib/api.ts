@@ -119,8 +119,32 @@ export function listAllDeliveries(): Promise<Delivery[]> {
   return req<Delivery[]>(`/api/deliveries`);
 }
 
+// 単一カットの納入履歴（詳細ページ用）
+export function listItemDeliveries(itemId: number): Promise<Delivery[]> {
+  return req<Delivery[]>(`/api/items/${itemId}/deliveries`);
+}
+
 export function deleteDelivery(id: number): Promise<{ item: Item }> {
   return req(`/api/deliveries/${id}`, { method: "DELETE" });
+}
+
+// API に show が無いので一覧から1件取得（1人利用・263件なので十分）
+export async function getItem(id: number): Promise<Item | null> {
+  const items = await listItems({});
+  return items.find((it) => it.id === id) ?? null;
+}
+
+// クリップURL（無ければnull）
+export function clipUrl(rel: string | null): string | null {
+  if (!rel) return null;
+  return `${API_BASE}/assets/${rel}`;
+}
+
+export function todayStr(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 // --- summary / categories ---
