@@ -66,6 +66,17 @@ export default function ItemsPage() {
     [items]
   );
 
+  // カテゴリごとにグループ化（出現順を保持）。「すべて」でも見出しで区切る
+  const groups = useMemo(() => {
+    const map = new Map<string, Item[]>();
+    for (const it of items) {
+      const key = it.category || "未分類";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(it);
+    }
+    return Array.from(map, ([category, list]) => ({ category, items: list }));
+  }, [items]);
+
   return (
     <div>
       <h1>カット一覧</h1>
@@ -120,11 +131,25 @@ export default function ItemsPage() {
 
       {err && <div className="err">{err}</div>}
 
-      <div className="grid">
-        {items.map((it) => (
-          <ItemCard key={it.id} item={it} />
-        ))}
-      </div>
+      {items.length === 0 && !err && (
+        <p className="muted">該当するカットがありません。</p>
+      )}
+
+      {groups.map((g) => (
+        <section key={g.category}>
+          <h2>
+            {g.category}{" "}
+            <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
+              （{g.items.length}）
+            </span>
+          </h2>
+          <div className="grid">
+            {g.items.map((it) => (
+              <ItemCard key={it.id} item={it} />
+            ))}
+          </div>
+        </section>
+      ))}
 
       <p className="muted" style={{ textAlign: "right", marginTop: 14 }}>
         フィルタ後の小計報酬合計：{" "}
