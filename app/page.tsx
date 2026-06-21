@@ -444,7 +444,7 @@ function MaterialCard({
           )
         ) : (
           <button className="btn upbtn" disabled>
-            {material.active ? "必要数達成" : "募集停止中"}
+            {material.active ? "希望数達成" : "募集停止中"}
           </button>
         )}
       </div>

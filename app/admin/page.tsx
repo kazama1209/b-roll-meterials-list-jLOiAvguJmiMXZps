@@ -28,7 +28,7 @@ const FIELDS: { key: keyof MaterialEditable; label: string; kind: FieldKind; w?:
   { key: "category", label: "カテゴリ", kind: "text", w: 150 },
   { key: "title", label: "タイトル / 説明", kind: "text", w: 240 },
   { key: "unit_price", label: "単価", kind: "num", w: 80 },
-  { key: "qty_required", label: "必要数", kind: "num", w: 76 },
+  { key: "qty_required", label: "希望数", kind: "num", w: 76 },
   { key: "reference_url", label: "参考リンク", kind: "text", w: 200 },
   { key: "thumbnail", label: "サムネpath", kind: "text", w: 140 },
   { key: "ref_clip", label: "クリップpath", kind: "text", w: 140 },

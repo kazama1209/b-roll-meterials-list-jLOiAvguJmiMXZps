@@ -31,7 +31,7 @@ export default function SummaryPage() {
           <div className="value">{yen(s.total_earned)}</div>
         </div>
         <div className="statcard">
-          <div className="label">提出 / 必要数</div>
+          <div className="label">提出 / 希望数</div>
           <div className="value">
             {s.total_submitted} / {s.total_required}
           </div>
