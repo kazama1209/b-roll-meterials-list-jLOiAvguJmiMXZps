@@ -397,6 +397,7 @@ function MaterialCard({
             />
           </div>
           <div className="progtext">
+            <span className="prog-label">希望数</span>
             {material.submitted_count} / {material.qty_required} 本
             {done && <span className="pill-done"> ✓ 完了</span>}
           </div>

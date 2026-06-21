@@ -541,6 +541,16 @@ textarea.field:focus {
   color: var(--mut);
   margin-top: 3px;
 }
+.progtext .prog-label {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f1f1f4;
+  color: #6b6b76;
+  font-weight: 600;
+  font-size: 10px;
+}
 
 /* submitted list */
 .subs {
