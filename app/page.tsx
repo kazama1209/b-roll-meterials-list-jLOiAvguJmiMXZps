@@ -31,8 +31,22 @@ function MaterialsView() {
   const [loading, setLoading] = useState(false);
 
   const cats = summary?.by_category ?? [];
-  // URL の ?cat= が選択カテゴリ。未指定なら先頭カテゴリ。
-  const activeCat = sp.get("cat") || cats[0]?.category || "";
+  // 選択カテゴリは state を正とする。router.replace + useSearchParams だけに頼ると、
+  // 「クエリのみ変更のソフト遷移」が稀に再レンダされず、タブ切替が空振り（fetch不発）する。
+  // state を即更新→fetch を発火させ、URL は共有用に後追いで同期する。
+  const [activeCat, setActiveCat] = useState<string>(() => sp.get("cat") || "");
+
+  // summary 読込後、未選択なら先頭カテゴリへ
+  useEffect(() => {
+    if (!activeCat && cats.length) setActiveCat(cats[0].category);
+  }, [cats, activeCat]);
+
+  // 戻る/進む等で URL の cat が変わったら state に同期
+  useEffect(() => {
+    const urlCat = sp.get("cat");
+    if (urlCat && urlCat !== activeCat) setActiveCat(urlCat);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp]);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -67,9 +81,10 @@ function MaterialsView() {
   }, [loadMaterials]);
 
   const selectCat = (c: string) => {
+    setActiveCat(c); // 即座に反映（fetch はこの state を見て発火する）
     const params = new URLSearchParams(sp.toString());
     params.set("cat", c);
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const patchOne = (m: Material) => {
