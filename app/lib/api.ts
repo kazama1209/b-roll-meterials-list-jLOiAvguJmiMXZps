@@ -1,54 +1,53 @@
-// b-roll tracker API クライアント（認証なし・Rails を直叩き）
+// b-roll 素材アップロードアプリ API クライアント（認証なし）
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3001";
 
-export type Tier = "core" | "exp" | "job";
-
-export type Item = {
+export type Submission = {
   id: number;
-  code: string;
-  tier: Tier;
-  category: string;
-  title: string;
-  reference_url: string | null;
-  thumbnail: string | null;
-  clip: string | null;
-  unit_price: number;
-  qty_wanted: number;
-  active: boolean;
-  position: number | null;
-  delivered: number;
-  earned: number;
-  remaining: number;
-  over_delivered: boolean;
+  material_id: number;
+  file_url: string;
+  storage_key: string;
+  original_filename: string | null;
+  content_type: string;
+  byte_size: number | null;
+  status: string;
+  created_at: string;
 };
 
-export type Delivery = {
+export type Material = {
   id: number;
-  item_id: number;
   code: string;
+  category: string;
   title: string;
-  qty: number;
-  delivered_on: string;
-  memo: string | null;
+  description: string;
+  reference_url: string | null;
+  unit_price: number;
+  qty_required: number;
+  thumbnail: string | null;
+  ref_clip: string | null;
+  position: number | null;
+  active: boolean;
+  submitted_count: number;
+  remaining: number;
+  can_upload: boolean;
+  earned: number;
+  submissions?: Submission[];
 };
 
 export type Summary = {
+  total_required: number;
+  total_submitted: number;
   total_earned: number;
-  total_wanted: number;
-  total_delivered: number;
-  items_completed: number;
-  items_total: number;
-  by_tier: { tier: Tier; earned: number; wanted: number; delivered: number }[];
+  materials_total: number;
+  materials_completed: number;
   by_category: {
     category: string;
+    required: number;
+    submitted: number;
     earned: number;
-    wanted: number;
-    delivered: number;
+    materials: number;
   }[];
 };
-
-export type Categories = Record<string, string[]>; // tier -> [category]
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -78,86 +77,85 @@ export function yen(n: number): string {
   return "¥" + (n ?? 0).toLocaleString("ja-JP");
 }
 
-// --- items ---
-export function listItems(params: {
-  tier?: string;
+export function fmtBytes(n: number | null): string {
+  if (!n) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// --- materials ---
+export function listMaterials(params: {
   category?: string;
   active?: string;
   q?: string;
-}): Promise<Item[]> {
+}): Promise<Material[]> {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v) qs.set(k, v);
   });
   const s = qs.toString();
-  return req<Item[]>(`/api/items${s ? `?${s}` : ""}`);
+  return req<Material[]>(`/api/materials${s ? `?${s}` : ""}`);
 }
 
-export function updateItem(
+export function updateMaterial(
   id: number,
-  patch: Partial<Pick<Item, "unit_price" | "qty_wanted" | "active" | "title">>
-): Promise<Item> {
-  return req<Item>(`/api/items/${id}`, {
+  patch: Partial<
+    Pick<
+      Material,
+      "unit_price" | "qty_required" | "description" | "title" | "active"
+    >
+  >
+): Promise<Material> {
+  return req<Material>(`/api/materials/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ item: patch }),
+    body: JSON.stringify({ material: patch }),
   });
 }
 
-// --- deliveries ---
-export function createDelivery(
-  itemId: number,
-  body: { qty: number; delivered_on: string; memo?: string }
-): Promise<{ delivery: Delivery; item: Item }> {
-  return req(`/api/items/${itemId}/deliveries`, {
-    method: "POST",
-    body: JSON.stringify({ delivery: body }),
+// --- submissions ---
+// アップロードは multipart/form-data。進捗が取れるよう XHR を使う。
+export function uploadSubmission(
+  materialId: number,
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<{ submission: Submission; material: Material }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/api/materials/${materialId}/submissions`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      let body: unknown = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(body as { submission: Submission; material: Material });
+      } else {
+        const msg =
+          (body as { error?: string })?.error ||
+          `アップロード失敗 (${xhr.status})`;
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error("通信エラー"));
+    const fd = new FormData();
+    fd.append("file", file);
+    xhr.send(fd);
   });
 }
 
-export function listAllDeliveries(): Promise<Delivery[]> {
-  // 全カットの納入を新しい順に取得（納入履歴ページ用）
-  return req<Delivery[]>(`/api/deliveries`);
+export function deleteSubmission(id: number): Promise<{ material: Material }> {
+  return req(`/api/submissions/${id}`, { method: "DELETE" });
 }
 
-// 単一カットの納入履歴（詳細ページ用）
-export function listItemDeliveries(itemId: number): Promise<Delivery[]> {
-  return req<Delivery[]>(`/api/items/${itemId}/deliveries`);
-}
-
-export function deleteDelivery(id: number): Promise<{ item: Item }> {
-  return req(`/api/deliveries/${id}`, { method: "DELETE" });
-}
-
-// API に show が無いので一覧から1件取得（1人利用・263件なので十分）
-export async function getItem(id: number): Promise<Item | null> {
-  const items = await listItems({});
-  return items.find((it) => it.id === id) ?? null;
-}
-
-// クリップURL（無ければnull）
-export function clipUrl(rel: string | null): string | null {
-  if (!rel) return null;
-  return `${API_BASE}/assets/${rel}`;
-}
-
-export function todayStr(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-// --- summary / categories ---
+// --- summary ---
 export function getSummary(): Promise<Summary> {
   return req<Summary>(`/api/summary`);
 }
-
-export function getCategories(): Promise<Categories> {
-  return req<Categories>(`/api/categories`);
-}
-
-export const TIER_LABEL: Record<string, string> = {
-  core: "コア",
-  exp: "拡張",
-  job: "職種特化",
-};

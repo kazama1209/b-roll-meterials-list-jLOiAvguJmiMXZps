@@ -3,8 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "b-roll トラッカー",
-  description: "撮影カットの発注・納入・報酬を管理",
+  title: "b-roll 素材アップロード",
+  description: "撮影カットごとに動画素材をアップロード",
 };
 
 export default function RootLayout({
@@ -17,10 +17,9 @@ export default function RootLayout({
       <body>
         <header className="topnav">
           <div className="inner">
-            <span className="brand">🎬 b-roll トラッカー</span>
-            <Link href="/">ダッシュボード</Link>
-            <Link href="/items">カット一覧</Link>
-            <Link href="/deliveries">納入履歴</Link>
+            <span className="brand">🎬 b-roll 素材アップロード</span>
+            <Link href="/">素材一覧</Link>
+            <Link href="/summary">サマリ</Link>
           </div>
         </header>
         <main className="container">{children}</main>

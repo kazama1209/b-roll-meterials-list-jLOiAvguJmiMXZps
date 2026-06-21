@@ -454,3 +454,119 @@ textarea.field:focus {
   color: var(--mut);
   flex: 1;
 }
+
+/* ===== upload card ===== */
+.upcard .meta {
+  display: flex;
+  flex-direction: column;
+}
+.upcard .cap {
+  min-height: 0;
+  margin-bottom: 4px;
+}
+.desc {
+  font-size: 11.5px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  max-height: 54px;
+  overflow: hidden;
+}
+.nothumb {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.7;
+  background: #444;
+}
+
+/* progress */
+.progwrap {
+  margin: 8px 0 6px;
+}
+.progbar {
+  height: 7px;
+  background: #f1e1e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.progfill {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 6px;
+  transition: width 0.2s;
+}
+.progfill.full {
+  background: #2e7d4f;
+}
+.progtext {
+  font-size: 11px;
+  color: var(--mut);
+  margin-top: 3px;
+}
+
+/* submitted list */
+.subs {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.subs li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  background: #fafafa;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+.subs li a {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+.subs .bytes {
+  color: var(--mut);
+  font-size: 10px;
+}
+.xdel {
+  border: none;
+  background: none;
+  color: #c92a2a;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/* upload button */
+.upbtn {
+  width: 100%;
+  margin-top: auto;
+}
+.upbtn:disabled {
+  background: #f0e6ea;
+  color: #b08;
+  opacity: 0.7;
+}
+.uploading {
+  margin-top: auto;
+}
+.uploading .muted {
+  font-size: 11px;
+}
+.err.small {
+  font-size: 11px;
+  padding: 5px 8px;
+  margin: 4px 0;
+}
