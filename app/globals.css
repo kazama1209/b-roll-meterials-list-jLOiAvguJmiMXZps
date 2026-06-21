@@ -38,24 +38,35 @@ header.topnav .inner {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
-  align-items: baseline;
-  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 28px;
   flex-wrap: wrap;
 }
 header.topnav .brand {
   font-weight: 700;
   font-size: 20px;
-  margin-right: 4px;
-}
-header.topnav a {
   color: #fff;
   text-decoration: none;
-  opacity: 0.92;
-  font-size: 14px;
 }
-header.topnav a:hover {
+header.topnav .navlinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+header.topnav .navlinks a {
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.95;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+header.topnav .navlinks a:hover {
   opacity: 1;
-  text-decoration: underline;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 main.container {

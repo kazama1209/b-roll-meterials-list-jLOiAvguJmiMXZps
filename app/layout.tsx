@@ -17,9 +17,11 @@ export default function RootLayout({
       <body>
         <header className="topnav">
           <div className="inner">
-            <span className="brand">🎬 b-roll 素材アップロード</span>
-            <Link href="/">素材一覧</Link>
-            <Link href="/summary">サマリ</Link>
+            <Link href="/" className="brand">🎬 b-roll 素材アップロード</Link>
+            <nav className="navlinks">
+              <Link href="/">素材一覧</Link>
+              <Link href="/summary">サマリ</Link>
+            </nav>
           </div>
         </header>
         <main className="container">{children}</main>
