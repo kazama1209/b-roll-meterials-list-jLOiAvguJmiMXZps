@@ -80,9 +80,11 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// お手本素材はフロント(Vercel CDN)の public/assets から配信する（相対パス・同一オリジン）。
+// 以前は API_BASE(App Runner) 配信だったが、CDN の方が速く App Runner の負荷も無い。
 export function assetUrl(rel: string | null): string | null {
   if (!rel) return null;
-  return `${API_BASE}/assets/${rel}`;
+  return `/assets/${rel.replace(/^\/+/, "")}`;
 }
 
 export function yen(n: number): string {
