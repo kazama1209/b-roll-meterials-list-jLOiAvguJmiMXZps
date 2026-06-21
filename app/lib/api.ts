@@ -34,10 +34,21 @@ export type Material = {
   submissions?: Submission[];
 };
 
+export type Payment = {
+  id: number;
+  amount: number;
+  paid_on: string;
+  memo: string | null;
+  created_at: string;
+};
+
 export type Summary = {
   total_required: number;
   total_submitted: number;
   total_earned: number;
+  total_potential: number;
+  total_paid: number;
+  outstanding: number;
   materials_total: number;
   materials_completed: number;
   by_category: {
@@ -45,6 +56,7 @@ export type Summary = {
     required: number;
     submitted: number;
     earned: number;
+    potential: number;
     materials: number;
   }[];
 };
@@ -98,19 +110,97 @@ export function listMaterials(params: {
   return req<Material[]>(`/api/materials${s ? `?${s}` : ""}`);
 }
 
+// admin から編集できるフィールド
+export type MaterialEditable = Partial<
+  Pick<
+    Material,
+    | "code"
+    | "category"
+    | "title"
+    | "description"
+    | "reference_url"
+    | "unit_price"
+    | "qty_required"
+    | "active"
+    | "thumbnail"
+    | "ref_clip"
+    | "position"
+  >
+>;
+
+// 管理操作は /api/admin/* （?key= / X-Admin-Key 認証）。key はURLの ?key= から渡す。
+function adminInit(key: string, init?: RequestInit): RequestInit {
+  return { ...init, headers: { "X-Admin-Key": key, ...(init?.headers || {}) } };
+}
+
+// 管理キーの事前検証（入室チェック）。OK なら true。
+export async function checkAdminKey(key: string): Promise<boolean> {
+  if (!key) return false;
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/check`, {
+      headers: { "X-Admin-Key": key },
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function updateMaterial(
   id: number,
-  patch: Partial<
-    Pick<
-      Material,
-      "unit_price" | "qty_required" | "description" | "title" | "active"
-    >
-  >
+  patch: MaterialEditable,
+  key: string
 ): Promise<Material> {
-  return req<Material>(`/api/materials/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ material: patch }),
-  });
+  return req<Material>(
+    `/api/admin/materials/${id}`,
+    adminInit(key, {
+      method: "PATCH",
+      body: JSON.stringify({ material: patch }),
+    })
+  );
+}
+
+export function createMaterial(
+  patch: MaterialEditable,
+  key: string
+): Promise<Material> {
+  return req<Material>(
+    `/api/admin/materials`,
+    adminInit(key, {
+      method: "POST",
+      body: JSON.stringify({ material: patch }),
+    })
+  );
+}
+
+export function deleteMaterial(id: number, key: string): Promise<void> {
+  return req<void>(
+    `/api/admin/materials/${id}`,
+    adminInit(key, { method: "DELETE" })
+  );
+}
+
+// --- payments（支払い台帳・admin のみ） ---
+export function listPayments(key: string): Promise<Payment[]> {
+  return req<Payment[]>(`/api/admin/payments`, adminInit(key));
+}
+
+export function createPayment(
+  body: { amount: number; paid_on: string; memo?: string },
+  key: string
+): Promise<Payment> {
+  return req<Payment>(
+    `/api/admin/payments`,
+    adminInit(key, { method: "POST", body: JSON.stringify({ payment: body }) })
+  );
+}
+
+export function deletePayment(id: number, key: string): Promise<void> {
+  return req<void>(
+    `/api/admin/payments/${id}`,
+    adminInit(key, { method: "DELETE" })
+  );
 }
 
 // --- submissions ---

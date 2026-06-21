@@ -94,6 +94,28 @@ h3 {
 .lead b {
   color: var(--ac);
 }
+/* 撮影注釈カード（正本 deliverable と同じ見た目） */
+.note-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 15px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.7;
+  box-shadow: 0 2px 10px rgba(214, 51, 108, 0.08);
+}
+.note-card b {
+  color: var(--ac);
+}
+.note-card ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+.note-card li {
+  margin: 3px 0;
+}
 
 /* ===== filters ===== */
 .filters {
@@ -569,4 +591,427 @@ textarea.field:focus {
   font-size: 11px;
   padding: 5px 8px;
   margin: 4px 0;
+}
+
+/* ===== 確認モーダル ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 20, 30, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: modal-fade 0.15s ease-out;
+}
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px 18px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  animation: modal-pop 0.16s ease-out;
+}
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink, #333);
+}
+.modal-msg {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== 競合アカウント一覧アコーディオン ===== */
+.accordion {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 12px 0 16px;
+  overflow: hidden;
+}
+.accordion > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.accordion > summary::-webkit-details-marker {
+  display: none;
+}
+.accordion > summary::before {
+  content: "▶";
+  font-size: 10px;
+  color: var(--ac);
+  transition: transform 0.15s;
+}
+.accordion[open] > summary::before {
+  transform: rotate(90deg);
+}
+.accordion > summary:hover {
+  background: #faf3f6;
+}
+.accordion-body {
+  padding: 4px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.acc-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  min-width: 640px;
+}
+.acc-table th,
+.acc-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.acc-table th {
+  background: #faf3f6;
+  color: #774;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.acc-table td.num {
+  text-align: right;
+  white-space: nowrap;
+  color: #2e7d4f;
+  font-weight: 600;
+}
+.acc-table tr.star td {
+  background: #fff8fb;
+}
+.acc-table a {
+  color: var(--ac);
+  font-weight: 600;
+}
+.legend {
+  font-size: 11.5px;
+  color: #777;
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+/* ===== 報酬バナー（ユーザー画面） ===== */
+.reward {
+  background: linear-gradient(135deg, #fff5f8, #fff);
+  border: 1px solid #f4cdd9;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 12px 0 16px;
+  box-shadow: 0 2px 12px rgba(214, 51, 108, 0.1);
+}
+.reward-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.reward-label {
+  font-size: 12.5px;
+  color: var(--mut);
+}
+.reward-earned {
+  font-size: 26px;
+  font-weight: 800;
+  color: #2e7d4f;
+}
+.reward-of {
+  font-size: 13px;
+  color: #777;
+}
+.reward-pay {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.pay-chip {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 3px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #555;
+}
+.pay-chip b {
+  font-size: 13px;
+}
+.pay-chip.paid b {
+  color: #2e7d4f;
+}
+.pay-chip.due {
+  background: #fff4e0;
+  border-color: #f0d9a8;
+}
+.pay-chip.due b {
+  color: #b76e00;
+}
+.reward-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reward-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.reward-cap {
+  font-size: 12px;
+  color: #555;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .reward-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
+
+/* ===== カテゴリタブ（ユーザー画面） ===== */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 14px;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.tab:hover {
+  border-color: var(--ac);
+}
+.tab.active {
+  background: var(--ac);
+  border-color: var(--ac);
+  color: #fff;
+  font-weight: 600;
+}
+.tab .tabbadge {
+  font-size: 10.5px;
+  background: #f0e6ea;
+  color: #b08;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 600;
+}
+.tab.active .tabbadge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.tab.done .tabbadge {
+  background: #e6f4ea;
+  color: #2e7d4f;
+}
+.tab.active.done .tabbadge {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* ===== 支払い管理パネル（admin） ===== */
+.pay-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 12px 0 20px;
+  box-shadow: 0 2px 12px rgba(214, 51, 108, 0.08);
+}
+.pay-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin-bottom: 12px;
+}
+.pay-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pay-stat-label {
+  font-size: 11.5px;
+  color: var(--mut);
+}
+.pay-stat-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #444;
+}
+.pay-stat-val.green {
+  color: #2e7d4f;
+}
+.pay-stat-val.orange {
+  color: #b76e00;
+}
+.pay-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+  margin-top: 8px;
+}
+.pay-table th,
+.pay-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 5px 8px;
+  text-align: left;
+}
+.pay-table th {
+  background: #faf3f6;
+  color: #774;
+  font-weight: 600;
+}
+.pay-table td.num {
+  text-align: right;
+  font-weight: 600;
+  color: #2e7d4f;
+}
+
+/* ===== admin 画面 ===== */
+.btn.xs {
+  padding: 3px 8px;
+  font-size: 11px;
+  margin-right: 4px;
+}
+.link {
+  background: none;
+  border: none;
+  color: var(--ac);
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+.ok-flash {
+  background: #e6f4ea;
+  color: #2e7d4f;
+  border: 1px solid #bfe3cc;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  margin: 8px 0;
+}
+.admin-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.admin-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: middle;
+}
+.admin-table th {
+  background: #faf3f6;
+  color: #774;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.admin-table tr.dirty td {
+  background: #fff8e6;
+}
+.admin-table tr.subrow td {
+  background: #fbf7f9;
+}
+.cell {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 3px 5px;
+  font-size: 12px;
+  background: #fcfafb;
+}
+.cell:focus {
+  border-color: var(--ac);
+  background: #fff;
+  outline: none;
+}
+.cell.num {
+  text-align: right;
+  min-width: 48px;
+  /* スピナーで桁が潰れないよう非表示に */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.cell.num::-webkit-outer-spin-button,
+.cell.num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.sublist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 2px;
+}
+.subitem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
 }

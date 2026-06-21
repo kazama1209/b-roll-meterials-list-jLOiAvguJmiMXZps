@@ -1,70 +1,226 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Material,
   Submission,
+  Summary,
   listMaterials,
+  getSummary,
   uploadSubmission,
   deleteSubmission,
   assetUrl,
   yen,
   fmtBytes,
 } from "./lib/api";
+import { BASICS_HTML, noteForCategory } from "./lib/notes";
+import { COMPETITORS, COMPETITORS_LEGEND } from "./lib/competitors";
+import { ConfirmModal } from "./components/ConfirmModal";
 
-export default function MaterialsPage() {
+function MaterialsView() {
+  const sp = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [q, setQ] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const reload = useCallback(async () => {
+  const cats = summary?.by_category ?? [];
+  // URL の ?cat= が選択カテゴリ。未指定なら先頭カテゴリ。
+  const activeCat = sp.get("cat") || cats[0]?.category || "";
+
+  const loadSummary = useCallback(async () => {
     try {
-      const data = await listMaterials({ q: q || undefined });
+      setSummary(await getSummary());
+    } catch (e) {
+      setErr(String(e));
+    }
+  }, []);
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
+  // 選択カテゴリの分だけ取得（全件一括ロードを避ける）
+  const loadMaterials = useCallback(async () => {
+    if (!activeCat) return;
+    setLoading(true);
+    try {
+      const data = await listMaterials({
+        category: activeCat,
+        q: q || undefined,
+      });
       setMaterials(data);
       setErr(null);
     } catch (e) {
       setErr(String(e));
+    } finally {
+      setLoading(false);
     }
-  }, [q]);
-
+  }, [activeCat, q]);
   useEffect(() => {
-    reload();
-  }, [reload]);
+    loadMaterials();
+  }, [loadMaterials]);
 
-  const patchOne = (m: Material) =>
+  const selectCat = (c: string) => {
+    const params = new URLSearchParams(sp.toString());
+    params.set("cat", c);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const patchOne = (m: Material) => {
     setMaterials((rows) => rows.map((r) => (r.id === m.id ? m : r)));
+    loadSummary(); // タブのバッジ・全体合計を更新
+  };
 
-  const shown = useMemo(
-    () => (openOnly ? materials.filter((m) => m.can_upload) : materials),
-    [materials, openOnly]
-  );
-
-  const groups = useMemo(() => {
-    const map = new Map<string, Material[]>();
-    for (const m of shown) {
-      const key = m.category || "未分類";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(m);
-    }
-    return Array.from(map, ([category, list]) => ({ category, items: list }));
-  }, [shown]);
-
-  const totalSubmitted = materials.reduce((a, m) => a + m.submitted_count, 0);
-  const totalRequired = materials.reduce((a, m) => a + m.qty_required, 0);
+  const shown = openOnly ? materials.filter((m) => m.can_upload) : materials;
+  const note = noteForCategory(activeCat);
 
   return (
     <div>
-      <h1>素材一覧</h1>
+      <h1>女性転職vlog b-roll ｜ 撮影カットリスト</h1>
       <p className="lead">
-        各カードの<b>説明・お手本</b>を見て、<b>動画ファイルをアップロード</b>してください。
-        <b>必要数に達したカットは受付終了</b>になります。提出済みは削除すると枠が空きます。
+        全カット顔は出しません（首から下・手元・後ろ姿・足元・モノ）／縦9:16。
+        各カードの説明・お手本を見て、動画ファイルをアップロードしてください。
       </p>
+
+      {/* 競合アカウント一覧（アコーディオン・デフォルト閉じ） */}
+      <details className="accordion">
+        <summary>競合アカウント一覧（女性vlog中心・絞り込み）</summary>
+        <div className="accordion-body">
+          <div className="table-scroll">
+            <table className="acc-table">
+              <thead>
+                <tr>
+                  <th>アカウント</th>
+                  <th>ジャンル</th>
+                  <th>代表作再生</th>
+                  <th>顔の扱い</th>
+                  <th>b-rollの傾向</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPETITORS.map((c) => (
+                  <tr key={c.name} className={c.star ? "star" : ""}>
+                    <td>
+                      {c.star ? "★ " : ""}
+                      <a
+                        href={`https://www.tiktok.com/${c.name}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {c.name}
+                      </a>
+                    </td>
+                    <td>{c.genre}</td>
+                    <td className="num">{c.plays}</td>
+                    <td>{c.face}</td>
+                    <td>{c.broll}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="legend">{COMPETITORS_LEGEND}</p>
+        </div>
+      </details>
+
+      {/* 報酬の進捗（提出 X/Y・報酬 稼ぎ/総額） */}
+      {summary && (
+        <div className="reward">
+          <div className="reward-main">
+            <span className="reward-label">現在の報酬</span>
+            <span className="reward-earned">{yen(summary.total_earned)}</span>
+            <span className="reward-of">
+              / 満額 {yen(summary.total_potential)}
+            </span>
+          </div>
+          <div className="reward-pay">
+            <span className="pay-chip paid">
+              支払い済み <b>{yen(summary.total_paid)}</b>
+            </span>
+            <span className="pay-chip due">
+              未払い <b>{yen(Math.max(0, summary.outstanding))}</b>
+            </span>
+          </div>
+          <div className="reward-bars">
+            <div className="reward-row">
+              <span className="reward-cap">
+                提出 {summary.total_submitted} / {summary.total_required} 本
+              </span>
+              <div className="progbar">
+                <div
+                  className="progfill"
+                  style={{
+                    width: `${
+                      summary.total_required
+                        ? Math.min(
+                            100,
+                            (summary.total_submitted / summary.total_required) *
+                              100
+                          )
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="reward-row">
+              <span className="reward-cap">
+                報酬 {yen(summary.total_earned)} / {yen(summary.total_potential)}
+              </span>
+              <div className="progbar">
+                <div
+                  className="progfill full"
+                  style={{
+                    width: `${
+                      summary.total_potential
+                        ? Math.min(
+                            100,
+                            (summary.total_earned / summary.total_potential) *
+                              100
+                          )
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="note-card"
+        dangerouslySetInnerHTML={{ __html: BASICS_HTML }}
+      />
+
+      {/* カテゴリタブ（クリックで ?cat= を切替・その分だけ取得） */}
+      <div className="tabs">
+        {cats.map((c) => (
+          <button
+            key={c.category}
+            className={`tab ${c.category === activeCat ? "active" : ""} ${
+              c.submitted >= c.required ? "done" : ""
+            }`}
+            onClick={() => selectCat(c.category)}
+          >
+            {c.category}
+            <span className="tabbadge">
+              {c.submitted}/{c.required}
+            </span>
+          </button>
+        ))}
+      </div>
 
       <div className="filters">
         <input
           className="text"
-          placeholder="キーワード検索（説明/code）"
+          placeholder="このカテゴリ内を検索（説明/code）"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           style={{ width: 260 }}
@@ -80,29 +236,49 @@ export default function MaterialsPage() {
           />
           募集中のみ
         </label>
-        <span className="muted">
-          全体 {totalSubmitted} / {totalRequired} 本
-        </span>
+        {summary && (
+          <span className="muted">
+            全体 {summary.total_submitted} / {summary.total_required} 本
+          </span>
+        )}
       </div>
 
       {err && <div className="err">{err}</div>}
 
-      {groups.map((g) => (
-        <section key={g.category}>
+      {activeCat && (
+        <section>
           <h2>
-            {g.category}{" "}
+            {activeCat}{" "}
             <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
-              （{g.items.length}）
+              （{shown.length}）
             </span>
           </h2>
-          <div className="grid">
-            {g.items.map((m) => (
-              <MaterialCard key={m.id} material={m} onChange={patchOne} />
-            ))}
-          </div>
+          {note && (
+            <div
+              className="note-card"
+              dangerouslySetInnerHTML={{ __html: note }}
+            />
+          )}
+          {loading ? (
+            <p className="muted">読み込み中…</p>
+          ) : (
+            <div className="grid">
+              {shown.map((m) => (
+                <MaterialCard key={m.id} material={m} onChange={patchOne} />
+              ))}
+            </div>
+          )}
         </section>
-      ))}
+      )}
     </div>
+  );
+}
+
+export default function MaterialsPage() {
+  return (
+    <Suspense fallback={<div className="muted">読み込み中…</div>}>
+      <MaterialsView />
+    </Suspense>
   );
 }
 
@@ -117,6 +293,8 @@ function MaterialCard({
   const [uploading, setUploading] = useState(false);
   const [pct, setPct] = useState(0);
   const [err, setErr] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Submission | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const poster = assetUrl(material.thumbnail);
   const refClip = assetUrl(material.ref_clip);
@@ -148,13 +326,17 @@ function MaterialCard({
     }
   };
 
-  const onDelete = async (s: Submission) => {
-    if (!confirm("この提出を削除しますか？（枠が1つ空きます）")) return;
+  const doDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      const { material: updated } = await deleteSubmission(s.id);
+      const { material: updated } = await deleteSubmission(pendingDelete.id);
       onChange(updated);
+      setPendingDelete(null);
     } catch (ex) {
-      alert("削除失敗: " + ex);
+      setErr("削除失敗: " + ex);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -229,7 +411,7 @@ function MaterialCard({
                   ▶ {s.original_filename || `提出#${s.id}`}
                 </a>
                 <span className="bytes">{fmtBytes(s.byte_size)}</span>
-                <button className="xdel" onClick={() => onDelete(s)}>
+                <button className="xdel" onClick={() => setPendingDelete(s)}>
                   ×
                 </button>
               </li>
@@ -262,10 +444,27 @@ function MaterialCard({
           )
         ) : (
           <button className="btn upbtn" disabled>
-            {material.active ? "受付終了（必要数達成）" : "募集停止中"}
+            {material.active ? "必要数達成" : "募集停止中"}
           </button>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!pendingDelete}
+        danger
+        title="提出を削除しますか？"
+        message={
+          <>
+            <b>{pendingDelete?.original_filename || `提出#${pendingDelete?.id}`}</b>
+            <br />
+            削除すると枠が1つ空きます。この操作は元に戻せません。
+          </>
+        }
+        confirmLabel="削除する"
+        busy={deleting}
+        onConfirm={doDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
